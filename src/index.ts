@@ -112,6 +112,7 @@ async function fetchReportData(
   sorting?: any[],
 ): Promise<{ items: any[]; totalItems: number }> {
   // Fetch first page to get totalItems
+  console.log(`[${new Date().toISOString()}] Fetching page 1...`);
   const firstPage = await fetchReportDataPage(
     client,
     uuid,
@@ -119,34 +120,36 @@ async function fetchReportData(
     { page: 1, pageSize },
     sorting,
   );
+  console.log(`[${new Date().toISOString()}] Page 1 loaded: ${firstPage.items.length} items`);
 
   const totalItems = firstPage.totalItems;
   const allItems = [...firstPage.items];
 
   // Calculate number of pages needed
   const totalPages = Math.ceil(totalItems / pageSize);
+  console.log(`Total pages to fetch: ${totalPages}`);
 
   // Fetch remaining pages
   if (totalPages > 1) {
-    const pagePromises = [];
     for (let page = 2; page <= totalPages; page++) {
-      pagePromises.push(
-        fetchReportDataPage(
-          client,
-          uuid,
-          filter,
-          { page, pageSize },
-          sorting,
-        ),
-      );
-    }
+      const startTime = Date.now();
+      console.log(`[${new Date().toISOString()}] Fetching page ${page}/${totalPages}...`);
 
-    const remainingPages = await Promise.all(pagePromises);
-    remainingPages.forEach((page) => {
-      allItems.push(...page.items);
-    });
+      const pageResult = await fetchReportDataPage(
+        client,
+        uuid,
+        filter,
+        { page, pageSize },
+        sorting,
+      );
+
+      const duration = Date.now() - startTime;
+      console.log(`[${new Date().toISOString()}] Page ${page} loaded: ${pageResult.items.length} items (took ${duration}ms)`);
+      allItems.push(...pageResult.items);
+    }
   }
 
+  console.log(`[${new Date().toISOString()}] All pages loaded. Total items: ${allItems.length}`);
   return {
     items: allItems,
     totalItems,
